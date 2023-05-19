@@ -41,9 +41,7 @@ Let's start analyzing the data.
 
 ### Data Preparation
 
-Before we start our data cleaning and analysis process, we're going to turn our *recipes* dataframe and *reviews* dataframe into one dataframe.
-
-We start by merging the two datasets creating a new dataset of each recipe with the addition of that recipe's average rating
+Before we start our data cleaning and analysis process, we're going to turn our *recipes* dataframe and *reviews* dataframe into one dataframe. We will do this by merging the two datasets creating a new dataset of each recipe with the addition of that recipe's average rating.
 
 The rest of our analysis will be conducted with this new combined dataset.
 
@@ -62,11 +60,9 @@ To take a deep dive into nutritional values, we need to do the same transformati
 For this project, we are mostly going to be looking at the protein/calorie ratio, which measures the grams of protein per calorie in a given meal. To find this value, convert the protein PDV into grams and divide that by the calories. And because some recipes have 0 calories, we need to fix the statistic by replacing NaN values with 0.
 
 Now that we can easily work with the Protein/Calorie statistic, shown as 'Pro/Cal', we need to get a column which classifies each recipe into its respective meal type.
-For this project, the categories we will use are ['Breakfast', 'Lunch', 'Dessert', 'Snacks', 'Beverage', and 'Dinner']
+For this project, the categories we will use are ['Breakfast', 'Lunch', 'Dessert', 'Snacks', 'Beverage', and 'Dinner'].
 
-After the meals are all classified, we will also remove all of the non-classified recipes.
-
-We are going to finish by only keeping the columns we are interest in.
+After the meals are all classified, we will also remove all of the non-classified recipes. We are going to finish by only keeping the columns we are interest in.
 
 After the cleaning, we are left with a dataframe looking like this:
 
