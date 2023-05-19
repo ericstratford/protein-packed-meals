@@ -7,9 +7,6 @@ by Eric Stratford (estratford@uscd.edu)
 ## Table of Contents
 {: .no_tox .text-delta }
 
-1. TOC
-{:toc}
-
 ---
 
 ## Introduction
@@ -39,13 +36,32 @@ Let's start analyzing the data.
 
 ## Cleaning and Exploratory Data Analysis (EDA)
 
+### Data Preparation
+
+Before we start our data cleaning and analysis process, we're going to turn our *recipes* dataframe and *reviews* dataframe into one dataframe.
+
+Using this block of code, we can merge the two datasets creating a new dataset of each recipe with the addition of that recipe's average rating
+```py
+# Merge the recipes and reviews dataset
+recipes_merged = raw_recipes.merge(raw_interactions, how='left', left_on='id', right_on='recipe_id')
+recipes_merged = recipes_merged.drop(columns=['recipe_id', 'review'])
+# Replace 0 ratings with NaN (ratings of 0 represent reviews without ratings and recipes with no reviews)
+recipes_merged['rating'] = recipes_merged['rating'].replace(0, np.nan)
+# Group by recipes to get the average rating of each recipe
+recipes_grouped = recipes_merged.groupby('id')['rating'].agg(['mean'])
+recipes_grouped = recipes_grouped.rename(columns={'mean':'avg_rating'})
+# Merge this back with the original recipes dataframe
+recipes_merged = raw_recipes.merge(recipes_grouped, how='left', on='id')
+```
+We will be conducting the rest of our analysis with this new combined dataset.
+
 ### Data Cleaning
 
-We start with the recipes dataframe where each row looks like this:
+We start with the new dataframe where each row looks like this:
 
-| name         |     id |   minutes |   contributor_id | submitted   | tags                                              | nutrition                            |   n_steps | steps                                             | description        | ingredients                              |   n_ingredients |
-|:-------------|-------:|----------:|-----------------:|:------------|:--------------------------------------------------|:-------------------------------------|----------:|:--------------------------------------------------|:-------------------|:-----------------------------------------|----------------:|
-| 2 point play | 290008 |         5 |           330545 | 2008-03-04  | ['15-minutes-or-less', 'time-to-make', 'course... | [65.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] |         2 | ['pour ingredients into a cocktail shaker with... | courtesy dekuyper. | ['sour apple schnapps', 'absolut vodka'] |               2 |
+| name         |     id |   minutes |   contributor_id | submitted   | tags                                              | nutrition                            |   n_steps | steps                                             | description        | ingredients                              |   n_ingredients |   avg_rating |
+|:-------------|-------:|----------:|-----------------:|:------------|:--------------------------------------------------|:-------------------------------------|----------:|:--------------------------------------------------|:-------------------|:-----------------------------------------|----------------:|-------------:|
+| 2 point play | 290008 |         5 |           330545 | 2008-03-04  | ['15-minutes-or-less', 'time-to-make', 'course... | [65.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] |         2 | ['pour ingredients into a cocktail shaker with... | courtesy dekuyper. | ['sour apple schnapps', 'absolut vodka'] |               2 |            5 |
 
 Knowing that we want to explore the various meal types, we are going to start by working with 'tags' as it contains the tags we will use as meal classification. Because the values in 'tags' are strings, we're going to use the code:
 ```py
@@ -89,13 +105,13 @@ recipes = recipes[['id','meal','Pro/Cal','Protein (g)','Calories (#)']].set_inde
 
 After the cleaning, we are left with a dataframe looking like this:
 
-| meal      |   Pro/Cal |   Protein (g) |   Calories (#) | Pro/Cal bin         |
-|:----------|----------:|--------------:|---------------:|:--------------------|
-| Dessert   | 0.0108382 |           1.5 |          138.4 | (-0.000235, 0.0118] |
-| Dessert   | 0.0113856 |          10   |          878.3 | (-0.000235, 0.0118] |
-| Dinner    | 0.0781877 |          19.5 |          249.4 | (0.0705, 0.0823]    |
-| Breakfast | 0.0265215 |           9.5 |          358.2 | (0.0235, 0.0353]    |
-| Breakfast | 0.0340492 |           6.5 |          190.9 | (0.0235, 0.0353]    |
+| meal      |   Pro/Cal |   Protein (g) |   Calories (#) |
+|:----------|----------:|--------------:|---------------:|
+| Dessert   | 0.0108382 |           1.5 |          138.4 |
+| Dessert   | 0.0113856 |          10   |          878.3 |
+| Dinner    | 0.0781877 |          19.5 |          249.4 |
+| Breakfast | 0.0265215 |           9.5 |          358.2 |
+| Breakfast | 0.0340492 |           6.5 |          190.9 |
 
 ### Univariate Analysis
 
@@ -104,6 +120,7 @@ Now that our data is clean, we can start with our EDA (Exploratory Data Analysis
 To see the distribution and corrolations between our variabls, we can graph our data into histograms:
 
 <iframe src="Assets/pcr-dist.html" width=800 height=600 frameBorder=0></iframe>
+
 
 In the above graph, we can see the distribution of Pro/Cal (Protein/Calorie) ratios among the recipes we are looking at. The data is heavily skewed towards the left, showing that most recipes have between a 0% and 5% Pro/Cal ratio with a cluster at 0%. This suggests that we can expect our average Pro/Cal ratio to be around 1-3% among all meals.
 
@@ -138,3 +155,124 @@ Looking at the values in this table, we see that *Lunch* has both the highest me
 So that's it right? Lunch is the best meal for gym-bros?
 
 Well, perhaps it's just the result of random chance that lunch has the most protein per calorie on average. We'll take a closer look at this in the *Hypothesis Testing* section.
+
+## Assessment of Missingness
+
+In much of the data we see in world, missing values are nothing out of the ordinary, and this dataset is no exception. In this section, we will explore these datasets' missing values and find out why they are missing.
+
+We will be using the original dataset that we started with after merging the recipes and reviews.
+
+For a quick refresh, the dataframe follows this format:
+
+| name         |     id |   minutes |   contributor_id | submitted   | tags                                              | nutrition                            |   n_steps | steps                                             | description        | ingredients                              |   n_ingredients |   avg_rating |
+|:-------------|-------:|----------:|-----------------:|:------------|:--------------------------------------------------|:-------------------------------------|----------:|:--------------------------------------------------|:-------------------|:-----------------------------------------|----------------:|-------------:|
+| 2 point play | 290008 |         5 |           330545 | 2008-03-04  | ['15-minutes-or-less', 'time-to-make', 'course... | [65.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] |         2 | ['pour ingredients into a cocktail shaker with... | courtesy dekuyper. | ['sour apple schnapps', 'absolut vodka'] |               2 |            5 |
+
+### NMAR Analysis
+
+Firstly, we are going to figure out which of our columns contain missing values. With this simple line:
+```py
+missing_cols = recipes_merged.columns[recipes_merged.isna().any()].tolist()
+```
+Our columns with missing values are *name*, *description*, and *avg_rating*.
+
+Using the definition of NMAR (Not Missing at Random) as a missingness type which depends on the missing values themselves, it seems as though this dataset has no values which are NMAR. 
+While it seems possible that *name* or *description* could be NMAR because they are provided by the recipe creator and some recipes are missing a description because they just can't be described, possible dependencies can still be surmised. For instance, some users might be more likely to not include descriptions. Or maybe the recipes that don't need descriptions are self-explanatory, in which there will be a dependency on 'n_steps' or 'n_ingredients'.
+
+### Missingness Dependency
+
+How about our other column with missing values *avg_rating*?
+
+Let's plot the distribution of the missing values against other variables:
+
+<iframe src="Assets/missingness-dist.html" width=800 height=600 frameBorder=0></iframe>
+
+This graph shows the distribution of the Date Submitted (date when the recipe was uploaded) for recipes where *avg_rating* is missing along with recipes where *avg_rating* is not missing. While the distributions appear similar, it seems like recipes with missing ratings typically have a slightly later submitted date.
+
+To see whether the missing ratings and non-missing ratings actually do come from different distributions, we are going to use a permutation test using the absolute difference in means test statistic.
+
+```py
+# Dependent Permutation Test
+xvar = 'submitted'
+n_repetitions = 500
+cutoff = 0.01
+
+# Use the difference in absolute means test statistic
+observed_diff = recipes_merged[recipes_merged['no rating']==True][xvar].mean() - recipes_merged[recipes_merged['no rating']==False][xvar].mean()
+observed_diff = observed_diff.days
+
+shuffled = recipes_merged.copy()
+diffs = []
+
+# Run permutation test
+for _ in range(n_repetitions):
+    # Shuffle the no-rating column
+    shuffled['no rating'] = np.random.permutation(shuffled['no rating'])
+    diff = abs(shuffled[shuffled['no rating']][xvar].mean() - shuffled[shuffled['no rating']==False][xvar].mean()).days
+    diffs.append(diff)
+
+# Evaluate p-value
+p_value = (observed_diff <= np.array(diffs)).mean()
+
+# Return the permutation test conclusion
+print("Observed Difference:", observed_diff, "Days")
+print("P-Value:", p_value)
+print("Reject Null:", p_value < cutoff)
+```
+After running the above code, we get an observed difference of 273 days. Given the context, this number is quite substantial. The permutation test yields a p-value of 0.0, so at the 1% significance level, we are going to reject the null hypothesis that the distribution is the same for missing and non-missing ratings with respect to submitted dates.
+
+We can better visualize the results of the permutation test in this graph:
+
+<iframe src="Assets/missingness-results.html" width=800 height=600 frameBorder=0></iframe>
+
+The results of this permutation test suggest that the missingness of ratings is dependent on the date submitted. This makes logical sense because newer recipes are less likely to have had the opportunity to be reviewed.
+
+
+Now let's see if the missingness of rating is not dependent on any other values.
+
+After performing the same data cleaning as we did earlier, we can extract the individual nutrition values into their own columns. For this test, we will use the *Sodium (PDV)* column.
+
+Repeating the process that we did for the submitted dates, we get the following graph:
+
+<iframe src="Assets/missingness-dist-2.html" width=800 height=600 frameBorder=0></iframe>
+
+Due to the significant outliers in this graph, it's hard to really see what's going on, so let's perform the permutation test to see the differences.
+
+<iframe src="Assets/missingness-results-2.html" width=800 height=600 frameBorder=0></iframe>
+
+The observed absolute difference in means is 0.35044% and the p-value is 0.896. As a result, we fail to reject the null hypothesis that the missing ratings and non-missing ratings come from the same distribution. Thus, we can safely assume that the rating missingness is not dependent on the Sodium content of the pertaining recipe.
+
+## Hypothesis Testing
+
+Earlier during our exploratory data analysis, we observed that lunch appeared to be the meal which had the highest protein/calorie ratio, with an average of 4.9%. In this section, we're going to test whether or not this observation is due to chance.
+
+First, let's outline our hypotheses:
+- Null Hypothesis: Meal Type and the protein/calorie ratio are not related.
+	- The observed difference in protein/calorie ratio is due to chance.
+- Alternative Hypothesis: Meal Type and protein/calorie ratio are related.
+	- Lunches have a higher protein/calorie ratio not because of chance.
+
+For this test, we are going to use the average protein/calorie ratio as our test statistic. And run the following code which creates 1000 sample averages and compares it to the observed average for lunch.
+
+```py
+# Simulate the experiment under the null hypothesis
+n_reps = 10000
+cutoff = 0.01
+
+# Generate 5995 sample averages and compare to the observed average
+averages = np.random.choice(recipes['Pro/Cal'], size=(n_reps, 5995)).mean(axis=1)
+observed_average = meals_group.loc['Lunch']['mean']
+p_value = (averages >= observed_average).mean()
+
+# Print the relevant conclusions
+print("P-Value:", p_value)
+print("Reject Null:", p_value < cutoff)
+```
+
+Our resulting p-value is 0.0, which tells us that we can reject the null hypothesis. Putting this visually:
+
+<iframe src="Assets/hypothesis-test-results.html" width=800 height=600 frameBorder=0></iframe>
+
+As we can see, the observed protein/calorie average for lunch of 0.049 does not appear to be due to chance, as confirmed by our hypothesis test.
+
+From these findings, we can conclude (though not absolutely) that lunch is the meal of the day with the highest protein per calorie ratio.
