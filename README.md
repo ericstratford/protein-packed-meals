@@ -95,7 +95,7 @@ Using information from the two graphs shown above, we can reasonably suppose tha
 
 <iframe src="Assets/pcr-meal-box.html" width=800 height=600 frameBorder=0></iframe>
 
-This box-plot shown above allows us to take a deeper look at the corrolation between meal types and their respective Pro/Cal ratio. While each meal type contains its high-protein outliers, we can see that 'Dessert' and 'Beverage' appears to have lower Pro/Cal ratios. At the same time, 'Dinner' and 'Lunch' seem to have the highest Pro/Cal ratios, with lunch have a slightly higher median.
+This box-plot shown above allows us to take a deeper look at the corrolation between meal types and their respective Pro/Cal ratio. While each meal type contains its high-protein outliers, we can see that 'Dessert' and 'Beverage' appears to have lower Pro/Cal ratios. At the same time, 'Dinner' and 'Lunch' seem to have the highest Pro/Cal ratios, with lunch having a slightly higher median.
 
 ### Interesting Aggregates
 
