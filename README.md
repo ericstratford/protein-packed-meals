@@ -275,4 +275,4 @@ Our resulting p-value is 0.0, which tells us that we can reject the null hypothe
 
 As we can see, the observed protein/calorie average for lunch of 0.049 does not appear to be due to chance, as confirmed by our hypothesis test.
 
-From these findings, we can conclude (though not absolutely) that lunch is the meal of the day with the highest protein per calorie ratio.
+From these findings, we can conclude (though not absolutely) that lunch is the meal of the day with the highest protein per calorie ratio when looking at the recipes on food.com.
