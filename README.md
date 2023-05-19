@@ -1,9 +1,8 @@
-# The Gym-Bro's Favorite Meal
-Which meal type has the most protein per calorie? Using data analysis and statistical testing, we will explore this question in this project for DSC 80 at UCSD.
-
 # The Gym-Bro's Favoriate Meal of the Day
 
 by Eric Stratford (estratford@uscd.edu)
+
+Which meal type has the most protein per calorie? Using data analysis and statistical testing, we will explore this question in this project for DSC 80 at UCSD.
 
 ---
 
