@@ -7,6 +7,9 @@ by Eric Stratford (estratford@uscd.edu)
 ## Table of Contents
 {: .no_tox .text-delta }
 
+1. TOC
+{:toc}
+
 ---
 
 ## Introduction
