@@ -43,20 +43,9 @@ Let's start analyzing the data.
 
 Before we start our data cleaning and analysis process, we're going to turn our *recipes* dataframe and *reviews* dataframe into one dataframe.
 
-Using this block of code, we can merge the two datasets creating a new dataset of each recipe with the addition of that recipe's average rating
-```py
-# Merge the recipes and reviews dataset
-recipes_merged = raw_recipes.merge(raw_interactions, how='left', left_on='id', right_on='recipe_id')
-recipes_merged = recipes_merged.drop(columns=['recipe_id', 'review'])
-# Replace 0 ratings with NaN (ratings of 0 represent reviews without ratings and recipes with no reviews)
-recipes_merged['rating'] = recipes_merged['rating'].replace(0, np.nan)
-# Group by recipes to get the average rating of each recipe
-recipes_grouped = recipes_merged.groupby('id')['rating'].agg(['mean'])
-recipes_grouped = recipes_grouped.rename(columns={'mean':'avg_rating'})
-# Merge this back with the original recipes dataframe
-recipes_merged = raw_recipes.merge(recipes_grouped, how='left', on='id')
-```
-We will be conducting the rest of our analysis with this new combined dataset.
+We start by merging the two datasets creating a new dataset of each recipe with the addition of that recipe's average rating
+
+The rest of our analysis will be conducted with this new combined dataset.
 
 ### Data Cleaning
 
@@ -66,45 +55,18 @@ We start with the new dataframe where each row looks like this:
 |:-------------|-------:|----------:|-----------------:|:------------|:--------------------------------------------------|:-------------------------------------|----------:|:--------------------------------------------------|:-------------------|:-----------------------------------------|----------------:|-------------:|
 | 2 point play | 290008 |         5 |           330545 | 2008-03-04  | ['15-minutes-or-less', 'time-to-make', 'course... | [65.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] |         2 | ['pour ingredients into a cocktail shaker with... | courtesy dekuyper. | ['sour apple schnapps', 'absolut vodka'] |               2 |            5 |
 
-Knowing that we want to explore the various meal types, we are going to start by working with 'tags' as it contains the tags we will use as meal classification. Because the values in 'tags' are strings, we're going to use the code:
-```py
-recipes['tags'] = recipes['tags'].str.strip("[]").str.replace("'","").str.split(", ")
-```
-to turn each value in the column into a list which we can look through.
-Because we are also going to take a deep dive into nutritional values, we need to do the same transformation to the 'nutrition' column. Then we are going to split up each nutritional value into its own column:
-```py
-recipes['nutrition'] = recipes['nutrition'].str.strip("[]").str.split(",")
-nutrition_labels = ["Calories (#)", "Total Fat (PDV)", "Sugar (PDV)", "Sodium (PDV)", "Protein (PDV)", "Saturated Fat (PDV)", "Carbohydrates (PDV)"]
-nutrition_df = pd.DataFrame(recipes['nutrition'].apply(pd.Series).astype(float))
-nutrition_df.columns = nutrition_labels
-recipes = pd.concat([recipes, nutrition_df], axis=1).drop(columns=['nutrition'])
-```
-For this project, we are mostly going to be looking at the protein/calorie ratio, which measures the grams of protein per calorie in a given meal. To find this value, we will use the code:
-```py
-recipes['Protein (g)'] = recipes['Protein (PDV)']/2
-recipes['Pro/Cal'] = recipes['Protein (g)']/recipes['Calories (#)']
-```
-And because some recipes have 0 calories, we need to fix the statistic with
-``` py
-recipes['Pro/Cal'] = recipes['Pro/Cal'].fillna(0)
-```
+Knowing that we want to explore the various meal types, we are going to start by working with 'tags' as it contains the tags we will use as meal classification. Because the values in 'tags' are strings, first had to turn each value in the column into a list which we can look through.
+
+To take a deep dive into nutritional values, we need to do the same transformation to the 'nutrition' column. Then we are going to split up each nutritional value into its own column.
+
+For this project, we are mostly going to be looking at the protein/calorie ratio, which measures the grams of protein per calorie in a given meal. To find this value, convert the protein PDV into grams and divide that by the calories. And because some recipes have 0 calories, we need to fix the statistic by replacing NaN values with 0.
 
 Now that we can easily work with the Protein/Calorie statistic, shown as 'Pro/Cal', we need to get a column which classifies each recipe into its respective meal type.
 For this project, the categories we will use are ['Breakfast', 'Lunch', 'Dessert', 'Snacks', 'Beverage', and 'Dinner']
-We create the classification and only keep the relevant recipes with
-```py
-meals = ['breakfast', 'lunch', 'desserts', 'snacks', 'beverages', 'brunch', 'dinner-party']
-meal_dict = {'breakfast':'Breakfast', 'lunch':'Lunch', 'desserts':'Dessert', 'snacks':'Snacks',\
-             'beverages':'Beverage', 'brunch':'Brunch', 'dinner-party':'Dinner'}
-recipes['meal'] = recipes['tags'].apply(lambda tags: next((tag for tag in tags if tag in meals), np.nan))
-recipes['meal'] = recipes['meal'].replace(meal_dict)
-recipes = recipes[recipes['meal'].isna()==False]
-```
 
-We are going to finish by only keeping the columns we are interest in
-```py
-recipes = recipes[['id','meal','Pro/Cal','Protein (g)','Calories (#)']].set_index('id')
-```
+After the meals are all classified, we will also remove all of the non-classified recipes.
+
+We are going to finish by only keeping the columns we are interest in.
 
 After the cleaning, we are left with a dataframe looking like this:
 
@@ -173,11 +135,7 @@ For a quick refresh, the dataframe follows this format:
 
 ### NMAR Analysis
 
-Firstly, we are going to figure out which of our columns contain missing values. With this simple line:
-```py
-missing_cols = recipes_merged.columns[recipes_merged.isna().any()].tolist()
-```
-Our columns with missing values are *name*, *description*, and *avg_rating*.
+Firstly, we are going to figure out which of our columns contain missing values. With some simple code we find that the columns with missing values are *name*, *description*, and *avg_rating*.
 
 Using the definition of NMAR (Not Missing at Random) as a missingness type which depends on the missing values themselves, it seems as though this dataset has no values which are NMAR. 
 While it seems possible that *name* or *description* could be NMAR because they are provided by the recipe creator and some recipes are missing a description because they just can't be described, possible dependencies can still be surmised. For instance, some users might be more likely to not include descriptions. Or maybe the recipes that don't need descriptions are self-explanatory, in which there will be a dependency on 'n_steps' or 'n_ingredients'.
@@ -194,35 +152,7 @@ This graph shows the distribution of the Date Submitted (date when the recipe wa
 
 To see whether the missing ratings and non-missing ratings actually do come from different distributions, we are going to use a permutation test using the absolute difference in means test statistic.
 
-```py
-# Dependent Permutation Test
-xvar = 'submitted'
-n_repetitions = 500
-cutoff = 0.01
-
-# Use the difference in absolute means test statistic
-observed_diff = recipes_merged[recipes_merged['no rating']==True][xvar].mean() - recipes_merged[recipes_merged['no rating']==False][xvar].mean()
-observed_diff = observed_diff.days
-
-shuffled = recipes_merged.copy()
-diffs = []
-
-# Run permutation test
-for _ in range(n_repetitions):
-    # Shuffle the no-rating column
-    shuffled['no rating'] = np.random.permutation(shuffled['no rating'])
-    diff = abs(shuffled[shuffled['no rating']][xvar].mean() - shuffled[shuffled['no rating']==False][xvar].mean()).days
-    diffs.append(diff)
-
-# Evaluate p-value
-p_value = (observed_diff <= np.array(diffs)).mean()
-
-# Return the permutation test conclusion
-print("Observed Difference:", observed_diff, "Days")
-print("P-Value:", p_value)
-print("Reject Null:", p_value < cutoff)
-```
-After running the above code, we get an observed difference of 273 days. Given the context, this number is quite substantial. The permutation test yields a p-value of 0.0, so at the 1% significance level, we are going to reject the null hypothesis that the distribution is the same for missing and non-missing ratings with respect to submitted dates.
+After running the a permutation test with 500 samples, we get an observed difference of 273 days. Given the context, this number is quite substantial. The permutation test yields a p-value of 0.0, so at the 1% significance level, we are going to reject the null hypothesis that the distribution is the same for missing and non-missing ratings with respect to submitted dates.
 
 We can better visualize the results of the permutation test in this graph:
 
@@ -255,22 +185,7 @@ First, let's outline our hypotheses:
 - Alternative Hypothesis: Meal Type and protein/calorie ratio are related.
 	- Lunches have a higher protein/calorie ratio not because of chance.
 
-For this test, we are going to use the average protein/calorie ratio as our test statistic. And run the following code which creates 1000 sample averages and compares it to the observed average for lunch.
-
-```py
-# Simulate the experiment under the null hypothesis
-n_reps = 10000
-cutoff = 0.01
-
-# Generate 5995 sample averages and compare to the observed average
-averages = np.random.choice(recipes['Pro/Cal'], size=(n_reps, 5995)).mean(axis=1)
-observed_average = meals_group.loc['Lunch']['mean']
-p_value = (averages >= observed_average).mean()
-
-# Print the relevant conclusions
-print("P-Value:", p_value)
-print("Reject Null:", p_value < cutoff)
-```
+For this test, we are going to use the average protein/calorie ratio as our test statistic. Then we run a hypothesis test which creates 1000 sample averages generated from 5995 individual ratings and compares it to the observed average for lunch.
 
 Our resulting p-value is 0.0, which tells us that we can reject the null hypothesis. Putting this visually:
 
