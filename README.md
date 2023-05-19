@@ -41,7 +41,7 @@ Let's start analyzing the data.
 
 ### Data Cleaning
 
-Starting with the recipes dataframe where each row looks like this:
+We start with the recipes dataframe where each row looks like this:
 
 | name         |     id |   minutes |   contributor_id | submitted   | tags                                              | nutrition                            |   n_steps | steps                                             | description        | ingredients                              |   n_ingredients |
 |:-------------|-------:|----------:|-----------------:|:------------|:--------------------------------------------------|:-------------------------------------|----------:|:--------------------------------------------------|:-------------------|:-----------------------------------------|----------------:|
@@ -82,7 +82,20 @@ recipes['meal'] = recipes['meal'].replace(meal_dict)
 recipes = recipes[recipes['meal'].isna()==False]
 ```
 
-And we are going to finish by only keeping the columns we are interest in
+We are going to finish by only keeping the columns we are interest in
 ```py
 recipes = recipes[['id','meal','Pro/Cal','Protein (g)','Calories (#)']].set_index('id')
 ```
+
+After the cleaning, we are left with a dataframe looking like this:
+
+| meal      |   Pro/Cal |   Protein (g) |   Calories (#) | Pro/Cal bin         |
+|:----------|----------:|--------------:|---------------:|:--------------------|
+| Dessert   | 0.0108382 |           1.5 |          138.4 | (-0.000235, 0.0118] |
+| Dessert   | 0.0113856 |          10   |          878.3 | (-0.000235, 0.0118] |
+| Dinner    | 0.0781877 |          19.5 |          249.4 | (0.0705, 0.0823]    |
+| Breakfast | 0.0265215 |           9.5 |          358.2 | (0.0235, 0.0353]    |
+| Breakfast | 0.0340492 |           6.5 |          190.9 | (0.0235, 0.0353]    |
+
+### Univariate Analysis
+
