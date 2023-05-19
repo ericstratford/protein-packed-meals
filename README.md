@@ -10,8 +10,6 @@ by Eric Stratford (estratford@uscd.edu)
 ## Table of Contents
 {: .no_tox .text-delta }
 
-1. TOC
-{:toc}
 
 ---
 
@@ -20,7 +18,7 @@ by Eric Stratford (estratford@uscd.edu)
 Let's say you're a gym-bro who wants to cut down on the number of meals you eat per day. Which meal of day should you cut out and which should you keep? 
 In this project, we're going to explore the question:
 
-**Which type of meal packs the most protein per calorie on average?**
+**"Which type of meal packs the most protein per calorie on average?"**
 
 To answer this question, we're going to be using a dataset of recipes from food.com. We are also going to be using a related dataset of reviews for each recipe for some preliminary data exploration.
 The recipes dataset contains 83,782 rows, one for each recipe as well as the columns for recipe name, cooking instructions, ingredients, nutrition, etc. 
@@ -31,11 +29,12 @@ For the purpose of this question, we will be using the following relevant column
 
 For the *missingness analysis*, we will also use the columns:
 - "submitted": the date the recipe was posted
+
 And the following columns from the review dataset:
 - 'recipe_id': id of the recipe being reviewed
 - 'rating': the rating given to the recipe by that review
 
-Let's start analyzing this data.
+Let's start analyzing the data.
 
 ---
 
@@ -43,11 +42,48 @@ Let's start analyzing this data.
 
 ### Data Cleaning
 
-Starting with a dataframe that looks like this:
+Starting with the recipes dataframe where each row looks like this:
 
+| name         |     id |   minutes |   contributor_id | submitted   | tags                                              | nutrition                            |   n_steps | steps                                             | description        | ingredients                              |   n_ingredients |
+|:-------------|-------:|----------:|-----------------:|:------------|:--------------------------------------------------|:-------------------------------------|----------:|:--------------------------------------------------|:-------------------|:-----------------------------------------|----------------:|
+| 2 point play | 290008 |         5 |           330545 | 2008-03-04  | ['15-minutes-or-less', 'time-to-make', 'course... | [65.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] |         2 | ['pour ingredients into a cocktail shaker with... | courtesy dekuyper. | ['sour apple schnapps', 'absolut vodka'] |               2 |
 
-| name                                 |     id |   minutes |   contributor_id | submitted   | tags                                                                                                                                                                                                                        | nutrition                                |   n_steps | steps                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | description                                                                                                                                                                                                                                                          | ingredients                                                                                                                                                                    |   n_ingredients |
-|:-------------------------------------|-------:|----------:|-----------------:|:------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-----------------------------------------|----------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------:|
-| 1 brownies in the world    best ever | 333281 |        40 |           985201 | 2008-10-27  | ['60-minutes-or-less', 'time-to-make', 'course', 'main-ingredient', 'preparation', 'for-large-groups', 'desserts', 'lunch', 'snacks', 'cookies-and-brownies', 'chocolate', 'bar-cookies', 'brownies', 'number-of-servings'] | [138.4, 10.0, 50.0, 3.0, 3.0, 19.0, 6.0] |        10 | ['heat the oven to 350f and arrange the rack in the middle', 'line an 8-by-8-inch glass baking dish with aluminum foil', 'combine chocolate and butter in a medium saucepan and cook over medium-low heat , stirring frequently , until evenly melted', 'remove from heat and let cool to room temperature', 'combine eggs , sugar , cocoa powder , vanilla extract , espresso , and salt in a large bowl and briefly stir until just evenly incorporated', 'add cooled chocolate and mix until uniform in color', 'add flour and stir until just incorporated', 'transfer batter to the prepared baking dish', 'bake until a tester inserted in the center of the brownies comes out clean , about 25 to 30 minutes', 'remove from the oven and cool completely before cutting'] | these are the most; chocolatey, moist, rich, dense, fudgy, delicious brownies that you'll ever make.....sereiously! there's no doubt that these will be your fav brownies ever for you can add things to them or make them plain.....either way they're pure heaven! | ['bittersweet chocolate', 'unsalted butter', 'eggs', 'granulated sugar', 'unsweetened cocoa powder', 'vanilla extract', 'brewed espresso', 'kosher salt', 'all-purpose flour'] |               9 |
+Knowing that we want to explore the various meal types, we are going to start by working with 'tags' as it contains the tags we will use as meal classification. Because the values in 'tags' are strings, we're going to use the code:
+```py
+recipes['tags'] = recipes['tags'].str.strip("[]").str.replace("'","").str.split(", ")
+```
+to turn each value in the column into a list which we can look through.
+Because we are also going to take a deep dive into nutritional values, we need to do the same transformation to the 'nutrition' column. Then we are going to split up each nutritional value into its own column:
+```py
+recipes['nutrition'] = recipes['nutrition'].str.strip("[]").str.split(",")
+nutrition_labels = ["Calories (#)", "Total Fat (PDV)", "Sugar (PDV)", "Sodium (PDV)", "Protein (PDV)", "Saturated Fat (PDV)", "Carbohydrates (PDV)"]
+nutrition_df = pd.DataFrame(recipes['nutrition'].apply(pd.Series).astype(float))
+nutrition_df.columns = nutrition_labels
+recipes = pd.concat([recipes, nutrition_df], axis=1).drop(columns=['nutrition'])
+```
+For this project, we are mostly going to be looking at the protein/calorie ratio, which measures the grams of protein per calorie in a given meal. To find this value, we will use the code:
+```py
+recipes['Protein (g)'] = recipes['Protein (PDV)']/2
+recipes['Pro/Cal'] = recipes['Protein (g)']/recipes['Calories (#)']
+```
+And because some recipes have 0 calories, we need to fix the statistic with
+``` py
+recipes['Pro/Cal'] = recipes['Pro/Cal'].fillna(0)
+```
 
-More
+Now that we can easily work with the Protein/Calorie statistic, shown as 'Pro/Cal', we need to get a column which classifies each recipe into its respective meal type.
+For this project, the categories we will use are ['Breakfast', 'Lunch', 'Dessert', 'Snacks', 'Beverage', and 'Dinner']
+We create the classification and only keep the relevant recipes with
+```py
+meals = ['breakfast', 'lunch', 'desserts', 'snacks', 'beverages', 'brunch', 'dinner-party']
+meal_dict = {'breakfast':'Breakfast', 'lunch':'Lunch', 'desserts':'Dessert', 'snacks':'Snacks',\
+             'beverages':'Beverage', 'brunch':'Brunch', 'dinner-party':'Dinner'}
+recipes['meal'] = recipes['tags'].apply(lambda tags: next((tag for tag in tags if tag in meals), np.nan))
+recipes['meal'] = recipes['meal'].replace(meal_dict)
+recipes = recipes[recipes['meal'].isna()==False]
+```
+
+And we are going to finish by only keeping the columns we are interest in
+```py
+recipes = recipes[['id','meal','Pro/Cal','Protein (g)','Calories (#)']].set_index('id')
+```
