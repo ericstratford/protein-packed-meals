@@ -2,13 +2,13 @@
 
 by Eric Stratford (estratford@uscd.edu)
 
-Which meal type has the most protein per calorie? Using data analysis and statistical testing, we will explore this question in this project for DSC 80 at UCSD.
-
 ---
 
 ## Table of Contents
 {: .no_tox .text-delta }
 
+1. TOC
+{:toc}
 
 ---
 
@@ -99,3 +99,42 @@ After the cleaning, we are left with a dataframe looking like this:
 
 ### Univariate Analysis
 
+Now that our data is clean, we can start with our EDA (Exploratory Data Analysis).
+
+To see the distribution and corrolations between our variabls, we can graph our data into histograms:
+
+<iframe src="Assets/pcr-dist.html" width=800 height=600 frameBorder=0></iframe>
+
+In the above graph, we can see the distribution of Pro/Cal (Protein/Calorie) ratios among the recipes we are looking at. The data is heavily skewed towards the left, showing that most recipes have between a 0% and 5% Pro/Cal ratio with a cluster at 0%. This suggests that we can expect our average Pro/Cal ratio to be around 1-3% among all meals.
+
+<iframe src="Assets/meal-dist.html" width=800 height=600 frameBorder=0></iframe>
+
+This graph displays the distribution of meal types, where the height of each bar represents the number of recipes in that classification. As shown here, most recipes are classified as dessert, dinner, lunch, breakfast, and beverage. 
+
+Using information from the two graphs shown above, we can reasonably suppose that most of the lowest Pro/Cal values come from beverages and desserts, but let's take a deeper look to see the actual correlation between the variables.
+
+### Bivariate Analysis
+
+<iframe src="Assets/pcr-meal-box.html" width=800 height=600 frameBorder=0></iframe>
+
+This box-plot shown above allows us to take a deeper look at the corrolation between meal types and their respective Pro/Cal ratio. While each meal type contains its high-protein outliers, we can see that 'Dessert' and 'Beverage' appears to have lower Pro/Cal ratios. At the same time, 'Dinner' and 'Lunch' seem to have the highest Pro/Cal ratios, with lunch have a slightly higher median.
+
+### Interesting Aggregates
+
+Let's get a simpler look at the Pro/Cal statistics of each meal type:
+
+| meal      |      mean |     median |   count |
+|:----------|----------:|-----------:|--------:|
+| Beverage  | 0.0123483 | 0.00455685 |    4573 |
+| Breakfast | 0.0353225 | 0.0302078  |    5147 |
+| Brunch    | 0.0318117 | 0.0248217  |    1218 |
+| Dessert   | 0.0141622 | 0.0122309  |   12915 |
+| Dinner    | 0.0473276 | 0.0397944  |    6732 |
+| Lunch     | 0.0494123 | 0.0442953  |    5996 |
+| Snacks    | 0.0287974 | 0.0235849  |     669 |
+
+Looking at the values in this table, we see that *Lunch* has both the highest mean and median. 
+
+So that's it right? Lunch is the best meal for gym-bros?
+
+Well, perhaps it's just the result of random chance that lunch has the most protein per calorie on average. We'll take a closer look at this in the *Hypothesis Testing* section.
