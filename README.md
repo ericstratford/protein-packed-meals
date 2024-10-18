@@ -3,6 +3,8 @@
 by Eric Stratford (estratford@uscd.edu)
 
 ---
+View the webpage: https://ericstratford.github.io/protein-packed-meals/
+---
 
 ## Table of Contents
 {: .no_tox .text-delta }
